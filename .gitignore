@@ -1,0 +1,49 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Build artifacts
+build/
+dist/
+*.spec
+*.exe
+
+# Database (will be re-created on server)
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+cloudflared_log.txt
+cloudflared.exe
+
+# Desktop app files (not needed for cloud)
+desktop_app.py
+build_desktop.py
+build.py
+Start_Application.bat
+Start_Public_Link.bat
+start.ps1
+
+# Security and Keys (CRITICAL)
+crs-app-e0093-firebase-adminsdk-fbsvc-*.json
+data/encryption.key
+data/
+uploads/
+
+# Raw image sources
+Criminal Images/
+reseed_with_images.py
+reseed_output.log
