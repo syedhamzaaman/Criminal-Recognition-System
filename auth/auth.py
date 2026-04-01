@@ -62,29 +62,37 @@ if not firebase_admin._apps:
         'storageBucket': bucket_name
     })
 
-def upload_image_to_firebase(file_path_or_bytes, destination_filename):
+import requests
+import base64
+
+def upload_image_to_imgbb(file_path_or_bytes, destination_filename=None):
     """
-    Uploads an image to Firebase Storage and returns its public download URL.
-    Generates an access token so it matches the client SDK's media URL format.
+    Uploads an image to ImgBB and returns its public direct URL.
+    This avoids Firebase Cloud Storage billing requirements.
     """
-    bucket = storage.bucket()
-    blob = bucket.blob(f"images/{destination_filename}")
-    
-    # Generate download token (client-like approach)
-    token = str(uuid.uuid4())
-    blob.metadata = {"firebaseStorageDownloadTokens": token}
-    
-    # Upload
-    if isinstance(file_path_or_bytes, str):
-        blob.upload_from_filename(file_path_or_bytes)
-    else: # bytes
-        blob.upload_from_string(file_path_or_bytes, content_type="image/jpeg")
+    api_key = os.environ.get("IMGBB_API_KEY")
+    if not api_key:
+        raise RuntimeError("IMGBB_API_KEY environment variable is missing!")
         
-    # Construct standard public download URL
-    encoded_name = urllib.parse.quote(blob.name, safe='')
-    download_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded_name}?alt=media&token={token}"
+    url = "https://api.imgbb.com/1/upload"
     
-    return download_url
+    # Read bytes if string path is provided
+    if isinstance(file_path_or_bytes, str):
+        with open(file_path_or_bytes, "rb") as f:
+            image_data = f.read()
+    else:
+        image_data = file_path_or_bytes
+        
+    payload = {
+        "key": api_key,
+        "image": base64.b64encode(image_data).decode('utf-8')
+    }
+    
+    res = requests.post(url, data=payload)
+    if res.status_code == 200:
+        return res.json()["data"]["url"]
+    else:
+        raise Exception(f"ImgBB upload failed: {res.text}")
 
 # Firestore client
 db_firestore = firestore.client()

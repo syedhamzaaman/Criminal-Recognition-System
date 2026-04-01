@@ -41,3 +41,6 @@ services:
       # ── Encryption ──
       - key: ENCRYPTION_KEY
         sync: false
+      # ── Image Hosting (ImgBB) ──
+      - key: IMGBB_API_KEY
+        sync: false
