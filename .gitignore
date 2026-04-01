@@ -38,6 +38,7 @@ Start_Public_Link.bat
 start.ps1
 
 # Security and Keys (CRITICAL)
+.env
 crs-app-e0093-firebase-adminsdk-fbsvc-*.json
 data/encryption.key
 data/

@@ -1,15 +1,26 @@
 """
 Database encryption utilities — AES-256 via Fernet for biometric embeddings.
+Supports ENCRYPTION_KEY env var for cloud deployments.
 """
 import base64
 import json
 import os
 from cryptography.fernet import Fernet
 
-# Generate a persistent key — in production, load from secure vault
-_KEY_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "encryption.key")
 
 def _get_or_create_key() -> bytes:
+    """
+    Get encryption key from:
+    1. ENCRYPTION_KEY environment variable (for cloud/Render)
+    2. Local key file (for local development)
+    """
+    # Priority 1: Environment variable
+    env_key = os.environ.get("ENCRYPTION_KEY")
+    if env_key:
+        return env_key.encode()
+
+    # Priority 2: Local file
+    _KEY_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "encryption.key")
     os.makedirs(os.path.dirname(_KEY_FILE), exist_ok=True)
     if os.path.exists(_KEY_FILE):
         with open(_KEY_FILE, "rb") as f:

@@ -2,18 +2,8 @@
    Criminal Recognition System v2.0 — Firebase-powered App Logic
    ══════════════════════════════════════════════════════════════ */
 
-// ── Firebase Config ────────────────────────────────────────────
-const firebaseConfig = {
-    apiKey: "AIzaSyCeCgVwzT0yGOvt5uqmuzbCDuG5Vqp1bxo",
-    authDomain: "crs-app-e0093.firebaseapp.com",
-    projectId: "crs-app-e0093",
-    storageBucket: "crs-app-e0093.firebasestorage.app",
-    messagingSenderId: "223315929515",
-    appId: "1:223315929515:web:562816636ee3047d45caee"
-};
-
-firebase.initializeApp(firebaseConfig);
-const firebaseAuth = firebase.auth();
+// ── Firebase Config (loaded from backend) ──────────────────────
+let firebaseAuth = null;
 
 // ── State ──────────────────────────────────────────────────────
 let authToken = localStorage.getItem('crs_token') || null;
@@ -24,8 +14,21 @@ let selectedPersonId = null;
 let personSearchTimeout = null;
 
 // ── Init ───────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
+
+    // Fetch Firebase config from backend (no hardcoded keys!)
+    try {
+        const res = await fetch('/api/config/firebase');
+        if (!res.ok) throw new Error('Failed to load Firebase config');
+        const firebaseConfig = await res.json();
+        firebase.initializeApp(firebaseConfig);
+        firebaseAuth = firebase.auth();
+    } catch (e) {
+        console.error('Firebase init failed:', e);
+        document.body.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;font-size:18px;">⚠️ Failed to initialize Firebase. Check server configuration.</div>';
+        return;
+    }
 
     // Listen for Firebase auth state changes
     firebaseAuth.onAuthStateChanged(async (user) => {

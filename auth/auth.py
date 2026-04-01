@@ -1,18 +1,61 @@
 """
 Firebase Authentication & RBAC middleware.
 Uses Firebase Admin SDK for token verification.
+Loads credentials from environment variables (no JSON file needed).
 """
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, firestore
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# Initialize Firebase Admin SDK
-_KEY_PATH = os.path.join(os.path.dirname(__file__), "..", "crs-app-e0093-firebase-adminsdk-fbsvc-76047bb4db.json")
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
+
+def _build_firebase_credentials():
+    """
+    Build Firebase credentials from environment variables.
+    Falls back to JSON file if env vars are not set (local dev).
+    """
+    project_id = os.environ.get("FIREBASE_PROJECT_ID")
+
+    if project_id:
+        # Build service account dict from env vars
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY", "")
+        # Handle escaped newlines from env var
+        private_key = private_key.replace("\\n", "\n")
+
+        service_account_info = {
+            "type": "service_account",
+            "project_id": project_id,
+            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID", ""),
+            "private_key": private_key,
+            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL", ""),
+            "client_id": os.environ.get("FIREBASE_CLIENT_ID", ""),
+            "auth_uri": os.environ.get("FIREBASE_AUTH_URI", "https://accounts.google.com/o/oauth2/auth"),
+            "token_uri": os.environ.get("FIREBASE_TOKEN_URI", "https://oauth2.googleapis.com/token"),
+            "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_CERT_URL", "https://www.googleapis.com/oauth2/v1/certs"),
+            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_CERT_URL", ""),
+            "universe_domain": "googleapis.com",
+        }
+        return credentials.Certificate(service_account_info)
+    else:
+        # Fallback: look for JSON file (local development)
+        _KEY_PATH = os.path.join(os.path.dirname(__file__), "..", "crs-app-e0093-firebase-adminsdk-fbsvc-76047bb4db.json")
+        if os.path.exists(_KEY_PATH):
+            return credentials.Certificate(_KEY_PATH)
+        raise RuntimeError(
+            "Firebase credentials not found! Set FIREBASE_PROJECT_ID and related "
+            "env vars, or provide the service account JSON file."
+        )
+
+
+# Initialize Firebase Admin SDK
 if not firebase_admin._apps:
-    cred = credentials.Certificate(_KEY_PATH)
+    cred = _build_firebase_credentials()
     firebase_admin.initialize_app(cred)
 
 # Firestore client

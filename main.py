@@ -5,6 +5,10 @@ FastAPI application entry point — Firebase-backed.
 import os
 import sys
 
+# Load .env file for local development
+from dotenv import load_dotenv
+load_dotenv()
+
 # Fix Windows console encoding
 os.environ["PYTHONIOENCODING"] = "utf-8"
 try:
@@ -28,6 +32,7 @@ from routes.search_routes import router as search_router
 from routes.audit_routes import router as audit_router
 from routes.dashboard_routes import router as dashboard_router
 from routes.export_routes import router as export_router
+from routes.config_routes import router as config_router
 
 app = FastAPI(
     title="Criminal Recognition System",
@@ -52,6 +57,7 @@ app.include_router(search_router)
 app.include_router(audit_router)
 app.include_router(dashboard_router)
 app.include_router(export_router)
+app.include_router(config_router)
 
 # Static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
