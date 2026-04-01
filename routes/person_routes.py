@@ -119,7 +119,7 @@ async def create_person(
     # Handle photo upload and embedding
     if photos:
         from face_pipeline.embedder import extract_multi_embedding
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        from auth.auth import upload_image_to_firebase
         images_for_embedding = []
 
         for i, photo in enumerate(photos):
@@ -127,14 +127,14 @@ async def create_person(
                 continue
             ext = photo.filename.split(".")[-1] if "." in photo.filename else "jpg"
             filename = f"{uuid.uuid4()}.{ext}"
-            filepath = os.path.join(UPLOAD_DIR, filename)
 
             contents = await photo.read()
-            with open(filepath, "wb") as f:
-                f.write(contents)
 
             if i == 0:
-                person_data["image_path"] = f"/data/uploads/{filename}"
+                try:
+                    person_data["image_path"] = upload_image_to_firebase(contents, filename)
+                except Exception as e:
+                    print(f"[ERR] Failed to upload to Firebase: {e}")
 
             try:
                 img = Image.open(io.BytesIO(contents)).convert("RGB")

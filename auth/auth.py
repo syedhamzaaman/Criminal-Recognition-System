@@ -4,9 +4,10 @@ Uses Firebase Admin SDK for token verification.
 Loads credentials from environment variables (no JSON file needed).
 """
 import os
-import json
+import uuid
+import urllib.parse
 import firebase_admin
-from firebase_admin import credentials, auth as firebase_auth, firestore
+from firebase_admin import credentials, auth as firebase_auth, firestore, storage
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -56,7 +57,34 @@ def _build_firebase_credentials():
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
     cred = _build_firebase_credentials()
-    firebase_admin.initialize_app(cred)
+    bucket_name = os.environ.get("FIREBASE_STORAGE_BUCKET", "crs-app-e0093.firebasestorage.app")
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': bucket_name
+    })
+
+def upload_image_to_firebase(file_path_or_bytes, destination_filename):
+    """
+    Uploads an image to Firebase Storage and returns its public download URL.
+    Generates an access token so it matches the client SDK's media URL format.
+    """
+    bucket = storage.bucket()
+    blob = bucket.blob(f"images/{destination_filename}")
+    
+    # Generate download token (client-like approach)
+    token = str(uuid.uuid4())
+    blob.metadata = {"firebaseStorageDownloadTokens": token}
+    
+    # Upload
+    if isinstance(file_path_or_bytes, str):
+        blob.upload_from_filename(file_path_or_bytes)
+    else: # bytes
+        blob.upload_from_string(file_path_or_bytes, content_type="image/jpeg")
+        
+    # Construct standard public download URL
+    encoded_name = urllib.parse.quote(blob.name, safe='')
+    download_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/{encoded_name}?alt=media&token={token}"
+    
+    return download_url
 
 # Firestore client
 db_firestore = firestore.client()
